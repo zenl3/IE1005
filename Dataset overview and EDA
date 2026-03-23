@@ -1,0 +1,114 @@
+#Dataset overview
+import pandas as pd
+
+# 1.  Load the uploaded files
+files = [
+    'BeijingPM20100101_20151231.csv',
+    'ChengduPM20100101_20151231.csv',
+    'GuangzhouPM20100101_20151231.csv',
+    'ShanghaiPM20100101_20151231.csv',
+    'ShenyangPM20100101_20151231.csv'
+]
+cities = ['Beijing', 'Chengdu', 'Guangzhou', 'Shanghai', 'Shenyang']
+
+# 2.  Core analysis logic
+summary_results = []
+
+for file, city in zip(files, cities):
+    df = pd.read_csv(file)
+    pm_cols = [col for col in df.columns if 'PM_' in col] 
+    
+    summary_results.append({
+        'City': city,
+        'Rows': len(df),
+        'PM Stations': len(pm_cols),
+        'PM_US Post Missing (%)': f"{(df['PM_US Post'].isnull().sum() / len(df) * 100):.2f}%",
+        'Avg Temp (C)': round(df['TEMP'].mean(), 2),
+        'Avg PM2.5 (All Stations)': round(df[pm_cols].mean().mean(), 2)
+    })
+
+# 3.   Output the summary table
+summary_df = pd.DataFrame(summary_results)
+print(summary_df)
+
+#EDA
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import os
+
+# 1.  Set plotting style
+sns.set(style="whitegrid")
+plt.rcParams['figure.figsize'] = (12, 8)
+
+# 2. Define file list
+
+files = {
+    'Beijing': 'BeijingPM20100101_20151231.csv',
+    'Chengdu': 'ChengduPM20100101_20151231.csv',
+    'Guangzhou': 'GuangzhouPM20100101_20151231.csv',
+    'Shanghai': 'ShanghaiPM20100101_20151231.csv',
+    'Shenyang': 'ShenyangPM20100101_20151231.csv'
+}
+
+# (Dataset Overview) ---
+print("Execute the task ,dataset overview\n")
+all_dfs = []
+summary_list = []
+
+for city, file in files.items():
+    if os.path.exists(file):
+        df = pd.read_csv(file)
+        df['City'] = city
+        all_dfs.append(df)
+        
+        #  Record basic stats
+        summary_list.append({
+            'City': city,
+            'Rows': len(df),
+            'Missing_PM_US (%)': (df['PM_US Post'].isnull().sum() / len(df) * 100).round(2),
+            'Avg_Temp': df['TEMP'].mean().round(2)
+        })
+    else:
+        print(f"error;can't find the document {file}")
+
+df_all = pd.concat(all_dfs, ignore_index=True)
+print(pd.DataFrame(summary_list))
+print("\n" + "="*50 + "\n")
+
+
+print("Execute the task 3: Generate EDA charts...")
+
+# A. Missing Values Heatmap
+plt.figure(figsize=(12, 6))
+sns.heatmap(df_all.isnull(), cbar=False, yticklabels=False, cmap='viridis')
+plt.title('Missing Values Map across All Cities')
+plt.show()
+
+# B.  seasonal Trends (Monthly)
+
+plt.figure(figsize=(12, 6))
+sns.lineplot(data=df_all, x='month', y='PM_US Post', hue='City', marker='o')
+plt.title('Average PM2.5 Concentration by Month')
+plt.xlabel('Month')
+plt.ylabel('PM2.5 (ug/m^3)')
+plt.show()
+
+# C.  Feature Correlation Analysis
+
+plt.figure(figsize=(10, 8))
+# Select numerical weather features
+cols = ['PM_US Post', 'DEWP', 'HUMI', 'PRES', 'TEMP', 'Iws', 'precipitation']
+bj_corr = df_all[df_all['City'] == 'Beijing'][cols].corr()
+sns.heatmap(bj_corr, annot=True, cmap='coolwarm', fmt=".2f")
+plt.title('Correlation: PM2.5 vs Weather Factors (Beijing)')
+plt.show()
+
+# D.  Inter-city Comparison (Boxplot)
+plt.figure(figsize=(10, 6))
+sns.boxplot(x='City', y='PM_US Post', data=df_all)
+plt.yscale('log') 
+plt.title('PM2.5 Distribution (Log Scale)')
+plt.show()
+
+print("All the codes have already executed！")
